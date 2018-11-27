@@ -17,7 +17,7 @@
 use std::env;
 use std::error::Error;
 use std::time::Duration;
-use web3::types::Address;
+use web3::types::{Address, U64, U128, H256};
 
 // Environment variables and their defaults
 const ENV_ORIGIN_ENDPOINT: &str = "MOSAIC_ORIGIN_ENDPOINT";
@@ -33,6 +33,14 @@ const ENV_ORIGIN_POLLING_INTERVAL: &str = "MOSAIC_ORIGIN_POLLING_INTERVAL";
 const DEFAULT_ORIGIN_POLLING_INTERVAL: &str = "1";
 const ENV_AUXILIARY_POLLING_INTERVAL: &str = "MOSAIC_AUXILIARY_POLLING_INTERVAL";
 const DEFAULT_AUXILIARY_POLLING_INTERVAL: &str = "1";
+const ENV_ORIGIN_EPOCH_LENGTH: &str = "MOSAIC_ORIGIN_EPOCH_LENGTH";
+const DEFAULT_ORIGIN_EPOCH_LENGTH: &str = "100";
+const ENV_AUXILIARY_EPOCH_LENGTH: &str = "MOSAIC_AUXILIARY_EPOCH_LENGTH";
+const DEFAULT_AUXILIARY_EPOCH_LENGTH: &str = "100";
+const ENV_ORIGIN_INITIAL_BLOCK_HASH: &str = "MOSAIC_ORIGIN_INITIAL_BLOCK_HASH";
+const ENV_AUXILIARY_INITIAL_BLOCK_HASH: &str = "MOSAIC_AUXILIARY_INITIAL_BLOCK_HASH";
+const ENV_ORIGIN_INITIAL_BLOCK_HEIGHT: &str = "MOSAIC_ORIGIN_INITIAL_BLOCK_HEIGHT";
+const ENV_AUXILIARY_INITIAL_BLOCK_HEIGHT: &str = "MOSAIC_AUXILIARY_INITIAL_BLOCK_HEIGHT";
 
 /// Global config for running a mosaic node.
 #[derive(Default)]
@@ -54,6 +62,18 @@ pub struct Config {
     auxiliary_block_store_address: Address,
     origin_polling_interval: Duration,
     auxiliary_polling_interval: Duration,
+    /// The casper ffg epoch length for origin.
+    origin_epoch_length: U64,
+    /// The casper ffg epoch length for auxiliary.
+    auxiliary_epoch_length: U64,
+    /// The initial block hash for origin.
+    origin_initial_block_hash: H256,
+    /// The initial block hash for auxiliary.
+    auxiliary_initial_block_hash: H256,
+    /// The initial block height for origin.
+    origin_initial_block_height:U128,
+    /// The initial block height for auxiliary.
+    auxiliary_initial_block_height:U128,
 }
 
 impl Config {
@@ -156,6 +176,13 @@ impl Config {
             None => panic!("An auxiliary polling period must be set"),
         };
 
+        let origin_epoch_length = Self::read_origin_epoch_length();
+        let auxiliary_epoch_length = Self::read_auxiliary_epoch_length();
+        let origin_initial_block_hash = Self::read_origin_initial_block_hash();
+        let auxiliary_initial_block_hash = Self::read_auxiliary_initial_block_hash();
+        let origin_initial_block_height = Self::read_origin_initial_block_height();
+        let auxiliary_initial_block_height = Self::read_auxiliary_initial_block_height();
+
         Config {
             origin_endpoint,
             auxiliary_endpoint,
@@ -166,7 +193,131 @@ impl Config {
             auxiliary_block_store_address,
             origin_polling_interval,
             auxiliary_polling_interval,
+            origin_epoch_length,
+            auxiliary_epoch_length,
+            origin_initial_block_hash,
+            auxiliary_initial_block_hash,
+            origin_initial_block_height,
+            auxiliary_initial_block_height,
         }
+    }
+
+    /// Reads an environment variable for casper ffg epoch length for origin chain and return the
+    /// value if found or a default if given.
+    ///
+    /// # Returns
+    ///
+    /// A U64 value for origin chain casper ffg epoch length.
+    fn read_origin_epoch_length() -> U64 {
+        let origin_epoch_length = match Self::read_environment_variable(
+            ENV_ORIGIN_EPOCH_LENGTH,
+            Some(DEFAULT_ORIGIN_EPOCH_LENGTH),
+        ) {
+            Some(origin_epoch_length) => origin_epoch_length
+                .parse::<U64>()
+                .expect("The origin epoch length cannot be parsed"),
+            None => panic!("An origin epoch length must be set"),
+        };
+        origin_epoch_length
+    }
+
+    /// Reads an environment variable for casper ffg epoch length for auxiliary chain and return the
+    /// value if found or a default if given.
+    ///
+    /// # Returns
+    ///
+    /// A U64 value for auxiliary chain casper ffg epoch length.
+    fn read_auxiliary_epoch_length() -> U64 {
+        let auxiliary_epoch_length = match Self::read_environment_variable(
+            ENV_AUXILIARY_EPOCH_LENGTH,
+            Some(DEFAULT_AUXILIARY_EPOCH_LENGTH),
+        ) {
+            Some(auxiliary_epoch_length) => auxiliary_epoch_length
+                .parse::<U64>()
+                .expect("The auxiliary epoch length cannot be parsed"),
+            None => panic!("An auxiliary epoch length must be set"),
+        };
+        auxiliary_epoch_length
+    }
+
+    /// Reads an environment variable for initial block hash for origin chain and return the
+    /// value if found or a default if given.
+    ///
+    /// # Returns
+    ///
+    /// A H256 value for initial block hash of origin chain.
+    fn read_origin_initial_block_hash() -> H256 {
+        let origin_initial_block_hash =
+            match Self::read_environment_variable(
+                ENV_ORIGIN_INITIAL_BLOCK_HASH,
+                None
+            ) {
+            Some(origin_initial_block_hash) => origin_initial_block_hash
+                .parse::<H256>()
+                .expect("The origin initial block hash cannot be parsed"),
+            None => panic!("An origin initial block hash must be set"),
+        };
+        origin_initial_block_hash
+    }
+
+    /// Reads an environment variable for initial block hash for auxiliary chain and return the
+    /// value if found or a default if given.
+    ///
+    /// # Returns
+    ///
+    /// A H256 value for initial block hash of auxiliary chain.
+    fn read_auxiliary_initial_block_hash() -> H256 {
+        let auxiliary_initial_block_hash =
+            match Self::read_environment_variable(
+                ENV_AUXILIARY_INITIAL_BLOCK_HASH,
+                None
+            ) {
+                Some(auxiliary_initial_block_hash) => auxiliary_initial_block_hash
+                    .parse::<H256>()
+                    .expect("The auxiliary initial block hash cannot be parsed"),
+                None => panic!("An auxiliary initial block hash must be set"),
+            };
+        auxiliary_initial_block_hash
+    }
+
+    /// Reads an environment variable for initial block height for origin chain and return the
+    /// value if found or a default if given.
+    ///
+    /// # Returns
+    ///
+    /// A U128 value for initial block height of origin chain.
+    fn read_origin_initial_block_height() -> U128 {
+        let origin_initial_block_height =
+            match Self::read_environment_variable(
+                ENV_ORIGIN_INITIAL_BLOCK_HEIGHT,
+                None
+            ) {
+                Some(origin_initial_block_height) => origin_initial_block_height
+                    .parse::<U128>()
+                    .expect("The origin initial block height cannot be parsed"),
+                None => panic!("An origin initial block height must be set"),
+            };
+        origin_initial_block_height
+    }
+
+    /// Reads an environment variable for initial block height for auxiliary chain and return the
+    /// value if found or a default if given.
+    ///
+    /// # Returns
+    ///
+    /// A U128 value for initial block height of auxiliary chain.
+    fn read_auxiliary_initial_block_height() -> U128 {
+        let auxiliary_initial_block_height =
+            match Self::read_environment_variable(
+                ENV_AUXILIARY_INITIAL_BLOCK_HEIGHT,
+                None
+            ) {
+                Some(auxiliary_initial_block_height) => auxiliary_initial_block_height
+                    .parse::<U128>()
+                    .expect("The auxiliary initial block height cannot be parsed"),
+                None => panic!("An auxiliary initial block height must be set"),
+            };
+        auxiliary_initial_block_height
     }
 
     /// Reads an environment variable and return the value if found or a default if given.
@@ -241,6 +392,36 @@ impl Config {
     pub fn auxiliary_polling_interval(&self) -> Duration {
         self.auxiliary_polling_interval
     }
+
+    /// Returns the origin chain casper ffg epoch length.
+    pub fn origin_epoch_length(&self) -> U64 {
+        self.origin_epoch_length
+    }
+
+    /// Returns the auxiliary chain casper ffg epoch length.
+    pub fn auxiliary_epoch_length(&self) -> U64 {
+        self.auxiliary_epoch_length
+    }
+
+    /// Returns the origin chain initial block hash.
+    pub fn origin_initial_block_hash(&self) -> H256 {
+        self.origin_initial_block_hash
+    }
+
+    /// Returns the auxiliary chain initial block hash.
+    pub fn auxiliary_initial_block_hash(&self) -> H256 {
+        self.auxiliary_initial_block_hash
+    }
+
+    /// Returns the origin chain initial block height.
+    pub fn origin_initial_block_height(&self) -> U128 {
+        self.origin_initial_block_height
+    }
+
+    /// Returns the auxiliary chain initial block height.
+    pub fn auxiliary_initial_block_height(&self) -> U128 {
+        self.auxiliary_initial_block_height
+    }
 }
 
 /// Parses a string of numbers into a duration in seconds.
@@ -281,6 +462,23 @@ mod test {
             ENV_AUXILIARY_BLOCK_STORE_ADDRESS,
             "5678901234123456789012345678901234567890",
         );
+        env::set_var(
+            ENV_ORIGIN_INITIAL_BLOCK_HASH,
+            "b6a85955e3671040901a17db85b121550338ad1a0071ca13d196d19df31f56ca",
+        );
+        env::set_var(
+            ENV_AUXILIARY_INITIAL_BLOCK_HASH,
+            "5fe50b260da6308036625b850b5d6ced6d0a9f814c0688bc91ffb7b7a3a54b67",
+        );
+        env::set_var(
+            ENV_ORIGIN_INITIAL_BLOCK_HEIGHT,
+            "100",
+        );
+        env::set_var(
+            ENV_AUXILIARY_INITIAL_BLOCK_HEIGHT,
+            "100",
+        );
+
 
         let config = Config::new();
         assert_eq!(
@@ -355,11 +553,92 @@ mod test {
             expected_auxiliary_endpoint, config.auxiliary_endpoint,
         );
 
+        let env_origin_epoch_length = "1001";
+        let env_auxiliary_epoch_length = "2001";
+        let env_origin_initial_block_hash =
+            "b6a85955e3671040901a17db85b121550338ad1a0071ca13d196d19df31f56ca";
+        let env_auxiliary_initial_block_hash =
+            "5fe50b260da6308036625b850b5d6ced6d0a9f814c0688bc91ffb7b7a3a54b67";
+        let env_origin_initial_block_height = "19001";
+        let env_auxiliary_initial_block_height = "45001";
+
+        env::set_var(
+            ENV_ORIGIN_EPOCH_LENGTH,
+            env_origin_epoch_length,
+        );
+        env::set_var(
+            ENV_AUXILIARY_EPOCH_LENGTH,
+            env_auxiliary_epoch_length,
+        );
+        env::set_var(
+            ENV_ORIGIN_INITIAL_BLOCK_HASH,
+            env_origin_initial_block_hash,
+        );
+        env::set_var(
+            ENV_AUXILIARY_INITIAL_BLOCK_HASH,
+            env_auxiliary_initial_block_hash,
+        );
+        env::set_var(
+            ENV_ORIGIN_INITIAL_BLOCK_HEIGHT,
+            env_origin_initial_block_height,
+        );
+        env::set_var(
+            ENV_AUXILIARY_INITIAL_BLOCK_HEIGHT,
+            env_auxiliary_initial_block_height,
+        );
+
+        let config = Config::new();
+
+        let expected_origin_epoch_length:U64 = env_origin_epoch_length.into();
+        let expected_auxiliary_epoch_length:U64 = env_auxiliary_epoch_length.into();
+        let expected_origin_initial_block_hash:H256 = env_origin_initial_block_hash.into();
+        let expected_auxiliary_initial_block_hash:H256 = env_auxiliary_initial_block_hash.into();
+        let expected_origin_initial_block_height:U128 = env_origin_initial_block_height.into();
+        let expected_auxiliary_initial_block_height:U128 = env_auxiliary_initial_block_height.into();
+
+        assert_eq!(
+            config.origin_epoch_length, expected_origin_epoch_length,
+            "Did not read the origin epoch length {}, but {} instead",
+            expected_origin_epoch_length, config.origin_epoch_length,
+        );
+        assert_eq!(
+            config.auxiliary_epoch_length, expected_auxiliary_epoch_length,
+            "Did not read the auxiliary epoch length {}, but {} instead",
+            expected_auxiliary_epoch_length, config.auxiliary_epoch_length,
+        );
+        assert_eq!(
+            config.origin_initial_block_hash, expected_origin_initial_block_hash,
+            "Did not read the origin initial block hash {}, but {} instead",
+            expected_origin_initial_block_hash, config.origin_initial_block_hash,
+        );
+        assert_eq!(
+            config.auxiliary_initial_block_hash, expected_auxiliary_initial_block_hash,
+            "Did not read the auxiliary initial block hash {}, but {} instead",
+            expected_auxiliary_initial_block_hash, config.auxiliary_initial_block_hash,
+        );
+        assert_eq!(
+            config.origin_initial_block_height, expected_origin_initial_block_height,
+            "Did not read the origin initial block height {}, but {} instead",
+            expected_origin_initial_block_height, config.origin_initial_block_height,
+        );
+        assert_eq!(
+            config.auxiliary_initial_block_height, expected_auxiliary_initial_block_height,
+            "Did not read the auxiliary initial block height {}, but {} instead",
+            expected_auxiliary_initial_block_height, config.auxiliary_initial_block_height,
+        );
+
         env::remove_var(ENV_ORIGIN_ENDPOINT);
         env::remove_var(ENV_AUXILIARY_ENDPOINT);
         env::remove_var(ENV_ORIGIN_VALIDATOR_ADDRESS);
         env::remove_var(ENV_AUXILIARY_VALIDATOR_ADDRESS);
         env::remove_var(ENV_ORIGIN_BLOCK_STORE_ADDRESS);
         env::remove_var(ENV_AUXILIARY_BLOCK_STORE_ADDRESS);
+        env::remove_var(ENV_ORIGIN_EPOCH_LENGTH);
+        env::remove_var(ENV_AUXILIARY_EPOCH_LENGTH);
+        env::remove_var(ENV_ORIGIN_INITIAL_BLOCK_HASH);
+        env::remove_var(ENV_AUXILIARY_INITIAL_BLOCK_HASH);
+        env::remove_var(ENV_ORIGIN_INITIAL_BLOCK_HEIGHT);
+        env::remove_var(ENV_AUXILIARY_INITIAL_BLOCK_HEIGHT);
+
     }
 }
